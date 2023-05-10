@@ -22,25 +22,11 @@ def mediapipe_detection(image,model):
 
 
 def draw_landmarks(image, results):
-    mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS)
+    #mp_drawing.draw_landmarks(image, results.face_landmarks, mp_holistic.FACEMESH_CONTOURS)
     mp_drawing.draw_landmarks(image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS)
     mp_drawing.draw_landmarks(image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
     mp_drawing.draw_landmarks(image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS)
 
-"""
-cap = cv2.VideoCapture(0)
-with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
-    while cap.isOpened():
-        ret, frame = cap.read()
-        image,results = mediapipe_detection(frame,holistic)
-        print(results)
-        draw_landmarks(image,results)
-        cv2.imshow('OpenCV feed', image)
-        if cv2.waitKey(10) & 0xFF == ord('q'):
-            break
-    cap.release()
-    cv2.destroyAllWindows    
-"""
 
 def extract_keypoints(results):
     pose = np.array([[res.x, res.y, res.z, res.visibility] for res in results.pose_landmarks.landmark]).flatten() if results.pose_landmarks else np.zeros(33*4)
@@ -51,7 +37,7 @@ def extract_keypoints(results):
 
 
 DATA_PATH = os.path.join('MP_DATA')
-actions = np.array(['hello','thanks','iloveyou','please','sorry','goodbye'])
+actions = np.array(['hello','thanks','love','please','sorry','goodbye','yes','no'])
 no_sequences = 30
 sequence_length = 30
 
@@ -62,8 +48,8 @@ for action in actions:
             os.makedirs(os.path.join(DATA_PATH,action,str(sequence)))
         except:
             pass  
-
 """
+#for training data
 cap = cv2.VideoCapture(0)
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
     for action in actions:
@@ -93,7 +79,6 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
                     break
     cap.release()
     cv2.destroyAllWindows    
-
 """
 
 label_map = {label:num for num, label in enumerate(actions)}
@@ -125,7 +110,6 @@ tb_callback = TensorBoard(log_dir=log_dir)
 
 """
 model = Sequential()
-
 model.add(LSTM(64, return_sequences=True, activation='relu', input_shape=(30,1662)))
 model.add(LSTM(128, return_sequences=True, activation='relu'))
 model.add(LSTM(64, return_sequences=False, activation='relu'))
@@ -140,8 +124,10 @@ model.save('model.h5')
 model = load_model('model.h5')
 sequence = []
 sentence = []
-threshold = 0.4
+threshold = 0.7
 
+
+#for final output
 cap = cv2.VideoCapture(0)
 with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=0.5) as holistic:
     while cap.isOpened():
@@ -176,9 +162,10 @@ with mp_holistic.Holistic(min_detection_confidence=0.5, min_tracking_confidence=
         
         
         cv2.imshow('OpenCV Feed', image)
-
-       
-        if cv2.waitKey(10) & 0xFF == ord('q'):
+        key = cv2.waitKey(10)
+        if key == ord('r'):
+            sentence = []
+        elif key == ord('q'):
             break
     cap.release()
     cv2.destroyAllWindows()
